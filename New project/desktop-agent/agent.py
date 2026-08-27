@@ -259,15 +259,11 @@ class TrackerAgent:
     # ---------- Helpers ----------
 
     @staticmethod
-    def get_public_ip():
+    def get_system_ip():
         try:
-            r = requests.get("https://api.ipify.org?format=json", timeout=5)
-            return r.json()["ip"]
+            return socket.gethostbyname(socket.gethostname())
         except Exception:
-            try:
-                return socket.gethostbyname(socket.gethostname())
-            except Exception:
-                return "unknown"
+            return "unknown"
 
     @staticmethod
     def capture_screenshot_bytes():
@@ -289,10 +285,11 @@ class TrackerAgent:
             if not self.token or not self.validate_token():
                 self.login()
 
-            ip_address = self.get_public_ip()
+            ip_address = self.get_system_ip()
             resp = requests.post(
                 f"{BACKEND_URL}/time-entries/start",
                 json={"ip_address": ip_address},
+                
                 headers=self.auth_headers(),
                 timeout=10,
             )
@@ -380,7 +377,7 @@ class TrackerAgent:
 
     def _capture_and_upload(self):
         image_bytes = self.capture_screenshot_bytes()
-        ip_address = self.get_public_ip()
+        ip_address = self.get_system_ip()
         files = {"file": (f"shot_{int(time.time())}.jpg", image_bytes, "image/jpeg")}
         data = {"time_entry_id": self.active_entry_id, "ip_address": ip_address}
         resp = requests.post(

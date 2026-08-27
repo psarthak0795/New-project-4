@@ -389,7 +389,8 @@ class TrackerAgent:
             files=files,
             headers=self.auth_headers(),
             timeout=30,
-        )
+        ) 
+        
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError:

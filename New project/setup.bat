@@ -1,0 +1,122 @@
+@echo off
+REM Run this ONCE on every new computer, right after copying the project
+REM here (see note below about what NOT to copy). It builds fresh virtual
+REM environments and installs dependencies using whatever Python/Node.js
+REM are already installed on THIS machine - it does not install Python or
+REM Node itself, and does not download anything except the pip/npm
+REM packages this project needs.
+REM
+REM IMPORTANT - why this script exists:
+REM Python virtual environments (the "venv" folders) are NOT portable.
+REM They hardcode the exact path of the Python install that created them.
+REM If you zip this whole project (including backend\venv and
+REM desktop-agent\venv) and copy it to a different computer, those venvs
+REM will be broken there, even though the files are all present - that's
+REM the "No Python at ..." error. The fix is to delete/exclude the venv
+REM folders before moving the project, and run this script fresh on the
+REM new machine instead. This script is safe to re-run any time - it only
+REM rebuilds the venv/node_modules folders, never touches your .env files,
+REM database, or captured screenshots.
+
+cd /d "%~dp0"
+
+REM Pass --auto (used by run.bat) to skip "press any key" prompts so setup
+REM can complete without anyone needing to interact with this window.
+set "AUTO_MODE="
+if /I "%~1"=="--auto" set "AUTO_MODE=1"
+
+echo === Org Tracker: one-time setup for this computer ===
+echo.
+
+where python >nul 2>nul
+if errorlevel 1 (
+    echo ERROR: "python" was not found on PATH.
+    echo Install Python 3.11+ from python.org first ^(check "Add python.exe to PATH"
+    echo during install^), open a NEW PowerShell/Command Prompt window, then re-run this script.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+
+where node >nul 2>nul
+if errorlevel 1 (
+    echo ERROR: "node"/"npm" was not found on PATH.
+    echo Install Node.js LTS from nodejs.org first, open a NEW PowerShell/Command
+    echo Prompt window, then re-run this script.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+
+echo --- Backend ---
+if exist "backend\venv" (
+    echo Removing existing backend\venv so it's rebuilt fresh for this computer...
+    rmdir /s /q "backend\venv"
+)
+python -m venv "backend\venv"
+if errorlevel 1 (
+    echo ERROR: failed to create backend\venv. See the error above.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+"backend\venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r "backend\requirements.txt"
+if errorlevel 1 (
+    echo ERROR: failed to install backend dependencies. See the error above.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+if not exist "backend\.env" (
+    copy "backend\.env.example" "backend\.env" >nul
+    echo Created backend\.env from the template - edit it if you need non-default settings.
+)
+
+echo.
+echo --- Desktop agent ---
+if exist "desktop-agent\venv" (
+    echo Removing existing desktop-agent\venv so it's rebuilt fresh for this computer...
+    rmdir /s /q "desktop-agent\venv"
+)
+python -m venv "desktop-agent\venv"
+if errorlevel 1 (
+    echo ERROR: failed to create desktop-agent\venv. See the error above.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+"desktop-agent\venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r "desktop-agent\requirements.txt"
+if errorlevel 1 (
+    echo ERROR: failed to install desktop-agent dependencies. See the error above.
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+if not exist "desktop-agent\.env" (
+    copy "desktop-agent\.env.example" "desktop-agent\.env" >nul
+    echo Created desktop-agent\.env from the template - edit it if BACKEND_URL needs to change.
+)
+
+echo.
+echo --- Frontend ---
+pushd frontend
+call npm install
+if errorlevel 1 (
+    echo ERROR: npm install failed. See the error above.
+    popd
+    if not defined AUTO_MODE pause
+    exit /b 1
+)
+popd
+if not exist "frontend\.env" (
+    copy "frontend\.env.example" "frontend\.env" >nul
+    echo Created frontend\.env from the template - edit it if VITE_BACKEND_URL needs to change.
+)
+
+echo.
+echo === Setup complete for this computer ===
+echo.
+if not exist "backend\tracker.db" (
+    echo No database found yet. If this is the very first machine ever running
+    echo this backend, create the first admin login with:
+    echo   backend\venv\Scripts\python.exe backend\create_admin.py
+    echo.
+)
+echo You can now use start-all.bat ^(visible windows^) or start-all-background.vbs
+echo ^(silent, no windows^) to run the tracker. Run install-local-autostart.bat if
+echo you want it to start automatically every time this Windows user logs in.
+if not defined AUTO_MODE pause

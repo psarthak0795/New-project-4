@@ -1,0 +1,68 @@
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function handle(resp) {
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.detail || `Request failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function login(email, password) {
+  const form = new URLSearchParams();
+  form.set("username", email);
+  form.set("password", password);
+
+  const resp = await fetch(`${BACKEND_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form,
+  });
+  const data = await handle(resp);
+  localStorage.setItem("token", data.access_token);
+  return data;
+}
+
+export function logout() {
+  localStorage.removeItem("token");
+}
+
+export async function getCurrentUser() {
+  const resp = await fetch(`${BACKEND_URL}/users/me`, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export async function listUsers() {
+  const resp = await fetch(`${BACKEND_URL}/users`, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export async function listTimeEntries(userId) {
+  const url = new URL(`${BACKEND_URL}/time-entries`);
+  if (userId) url.searchParams.set("user_id", userId);
+  const resp = await fetch(url, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export async function listScreenshots(userId, timeEntryId) {
+  const url = new URL(`${BACKEND_URL}/screenshots`);
+  if (userId) url.searchParams.set("user_id", userId);
+  if (timeEntryId) url.searchParams.set("time_entry_id", timeEntryId);
+  const resp = await fetch(url, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export function screenshotUrl(filePath) {
+    // backend serves the storage dir at /media/screenshots
+    // normalize Windows backslashes to forward slashes before matching
+    const normalized = filePath.replace(/\\/g, "/");
+    const marker = "storage/screenshots/";
+    const idx = normalized.indexOf(marker);
+    const relative = idx >= 0 ? normalized.slice(idx + marker.length) : normalized;
+    return `${BACKEND_URL}/media/screenshots/${relative}`;
+  }

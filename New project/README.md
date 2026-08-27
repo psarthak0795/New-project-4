@@ -178,6 +178,34 @@ To move this project correctly:
    no separate steps needed. (If you'd rather do it manually, run
    `setup.bat` yourself first, then `start-all.bat`.)
 
+### The backend port — one setting, never hardcoded per machine
+
+`backend\.env`'s `PORT` value is the **only** place the backend's port is
+ever set. `desktop-agent\.env` and `frontend\.env` don't have their own
+independent port setting — every time `setup.bat` runs (including
+automatically, via `run.bat`), it reads `PORT` from `backend\.env` and
+rewrites the `localhost:<port>` portion of `BACKEND_URL` /
+`VITE_BACKEND_URL` in those two files to match, on whatever computer it's
+running on. `start-all-background.vbs` and `start-backend.bat` also read
+`PORT` from `backend\.env` directly instead of hardcoding a number.
+
+This means: if port 8000 is already taken by something else on a
+particular machine, change `PORT` in that machine's `backend\.env` and
+re-run `setup.bat` (or just `run.bat`) — every other component
+automatically follows, on that machine only. It also means you should
+never edit a port number directly inside `start-backend.bat` or
+`start-all-background.vbs` — change it in `backend\.env` instead, or the
+next `setup.bat` run will overwrite your edit back to whatever
+`backend\.env` says.
+
+(This is the fix for a real bug hit during development: two launcher
+scripts once had a hardcoded port that didn't match the `.env.example`
+templates, so a fresh clone on a different computer had the agent silently
+unable to reach the backend — the login window would appear, but nothing
+would happen after entering credentials, with no visible error since the
+agent runs without a console window. That specific failure mode is why the
+port is now centralized instead of repeated in multiple files.)
+
 ## Deploying across your organization
 
 This is the part that turns the local demo above into something installed
@@ -309,3 +337,5 @@ jurisdictions. Before rolling this out to real staff:
   scoring — the `activity_level` column already exists on `Screenshot` for
   this.
 - Password reset / employee self-registration flows.
+
+ 

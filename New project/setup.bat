@@ -108,6 +108,25 @@ if not exist "frontend\.env" (
 )
 
 echo.
+echo --- Keeping the backend port in sync everywhere ---
+REM backend\.env is the ONLY place the port is ever set. This makes sure
+REM desktop-agent\.env and frontend\.env always point at that SAME port,
+REM on every computer, regardless of what port ends up used here - this
+REM runs every time setup.bat runs, not just on first creation, so it
+REM self-heals even if backend\.env's PORT is changed later. It only ever
+REM touches a "http://localhost:<port>" pattern - a custom production URL
+REM (a real domain, no port) is left completely untouched.
+set "PORT=8000"
+if exist "backend\.env" (
+    for /f "usebackq tokens=1,2 delims==" %%A in ("backend\.env") do (
+        if /I "%%A"=="PORT" set "PORT=%%B"
+    )
+)
+echo Backend port: %PORT%
+powershell -NoProfile -Command "(Get-Content 'desktop-agent\.env') -replace 'http://localhost:\d+', 'http://localhost:%PORT%' | Set-Content 'desktop-agent\.env'"
+powershell -NoProfile -Command "(Get-Content 'frontend\.env') -replace 'http://localhost:\d+', 'http://localhost:%PORT%' | Set-Content 'frontend\.env'"
+
+echo.
 echo === Setup complete for this computer ===
 echo.
 if not exist "backend\tracker.db" (
@@ -120,3 +139,4 @@ echo You can now use start-all.bat ^(visible windows^) or start-all-background.v
 echo ^(silent, no windows^) to run the tracker. Run install-local-autostart.bat if
 echo you want it to start automatically every time this Windows user logs in.
 if not defined AUTO_MODE pause
+ 

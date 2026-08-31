@@ -21,13 +21,33 @@ If (Not PythonWorks(backendPython)) Or (Not PythonWorks(agentPython)) Then
     WScript.Quit 1
 End If
 
-StartHidden "cmd.exe /c cd /d " & q & root & "\backend" & q & " && " & q & backendPython & q & " -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001"
+StartHidden "cmd.exe /c cd /d " & q & root & "\backend" & q & " && " & q & backendPython & q & " -m uvicorn app.main:app --reload --host 0.0.0.0 --port " & GetBackendPort()
 StartHidden "cmd.exe /c cd /d " & q & root & "\frontend" & q & " && npm.cmd run dev"
 StartHidden "cmd.exe /c cd /d " & q & root & "\desktop-agent" & q & " && " & q & agentPython & q & " agent.py"
 
 Sub StartHidden(command)
     shell.Run command, 0, False
 End Sub
+
+Function GetBackendPort()
+    ' Reads PORT= from backend\.env so this can never drift out of sync
+    ' with what desktop-agent\.env / frontend\.env expect - the port is
+    ' only ever set in one place (backend\.env), never hardcoded here.
+    Dim envPath, f, line, port
+    port = "8000"
+    envPath = root & "\backend\.env"
+    If fso.FileExists(envPath) Then
+        Set f = fso.OpenTextFile(envPath, 1)
+        Do While Not f.AtEndOfStream
+            line = Trim(f.ReadLine)
+            If LCase(Left(line, 5)) = "port=" Then
+                port = Mid(line, 6)
+            End If
+        Loop
+        f.Close
+    End If
+    GetBackendPort = port
+End Function
 
 Function PythonWorks(pyPath)
     Dim wshExec, tries

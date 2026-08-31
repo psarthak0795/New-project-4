@@ -23,6 +23,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 from datetime import datetime, timezone
 from getpass import getpass
 
@@ -35,6 +36,7 @@ from pystray import MenuItem as Item
 from config import (
     BACKEND_URL,
     AUTO_START_TRACKING,
+    DATA_DIR,
     SCREENSHOT_INTERVAL_SECONDS,
     SCREENSHOT_NOTIFICATIONS_ENABLED,
     TOKEN_FILE,
@@ -440,4 +442,18 @@ class TrackerAgent:
 
 
 if __name__ == "__main__":
-    TrackerAgent().run()
+    try:
+        TrackerAgent().run()
+    except Exception:
+        # Running via pythonw.exe means there's no console for a crash to
+        # print to — without this, a startup failure looks like "nothing
+        # happened" with zero clues why. Always leave a trail on disk.
+        log_path = os.path.join(DATA_DIR, "agent_error.log")
+        try:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"\n--- crash at {datetime.now(timezone.utc).isoformat()} ---\n")
+                f.write(traceback.format_exc())
+        except Exception:
+            pass
+        raise
+ 

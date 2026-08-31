@@ -3,7 +3,8 @@ REM ============================================================
 REM  THE ONE FILE TO RUN. Double-click this and Org Tracker starts.
 REM
 REM  First time on a computer: automatically builds what's needed
-REM  (venvs + dependencies), which takes a minute or two.
+REM  (venvs + dependencies) and installs Windows autostart, which takes a
+REM  minute or two.
 REM  Every time after that: starts in a few seconds, silently,
 REM  with no visible windows (check the system tray for the agent).
 REM ============================================================
@@ -11,6 +12,8 @@ REM ============================================================
 cd /d "%~dp0"
 
 set "NEED_SETUP="
+set "STARTUP_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "AUTOSTART_SHORTCUT=%STARTUP_DIR%\OrgTrackerLocal.lnk"
 
 if not exist "backend\venv\Scripts\python.exe" set "NEED_SETUP=1"
 if not exist "desktop-agent\venv\Scripts\python.exe" set "NEED_SETUP=1"
@@ -38,6 +41,19 @@ if defined NEED_SETUP (
         echo.
         echo Setup failed - see the messages above, fix the issue, and run
         echo run.bat again.
+        pause
+        exit /b 1
+    )
+    echo.
+)
+
+if not exist "%AUTOSTART_SHORTCUT%" (
+    echo Installing automatic startup for this Windows user...
+    call "%~dp0install-local-autostart.bat"
+    if errorlevel 1 (
+        echo.
+        echo Autostart setup failed - Org Tracker can still run now, but it
+        echo may not start automatically after reboot. See the messages above.
         pause
         exit /b 1
     )

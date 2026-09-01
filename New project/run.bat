@@ -44,13 +44,12 @@ if defined NEED_SETUP (
     echo.
 )
 
-if not exist "backend\tracker.db" (
-    echo No admin login exists yet on this computer's database.
-    echo Create one now:
+echo Ensuring the PostgreSQL database and tables are ready...
+"backend\venv\Scripts\python.exe" -c "from app.database import engine; from app import models; models.Base.metadata.create_all(bind=engine); print('PostgreSQL schema ready')"
+
+echo If you have not created the first admin account yet, run:
+    echo   backend\venv\Scripts\python.exe backend\create_admin.py
     echo.
-    "backend\venv\Scripts\python.exe" backend\create_admin.py
-    echo.
-)
 
 echo Starting Org Tracker...
 call "%~dp0start-all-background.bat"

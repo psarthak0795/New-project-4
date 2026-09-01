@@ -129,14 +129,12 @@ powershell -NoProfile -Command "(Get-Content 'frontend\.env') -replace 'http://l
 echo.
 echo === Setup complete for this computer ===
 echo.
-if not exist "backend\tracker.db" (
-    echo No database found yet. If this is the very first machine ever running
-    echo this backend, create the first admin login with:
+echo Ensuring the PostgreSQL database and tables are ready for this project.
+"backend\venv\Scripts\python.exe" -c "from app.database import engine; from app import models; models.Base.metadata.create_all(bind=engine); print('PostgreSQL schema ready')"
+echo If the first admin account has not been created yet, run:
     echo   backend\venv\Scripts\python.exe backend\create_admin.py
     echo.
-)
 echo You can now use start-all.bat ^(visible windows^) or start-all-background.vbs
 echo ^(silent, no windows^) to run the tracker. Run install-local-autostart.bat if
 echo you want it to start automatically every time this Windows user logs in.
 if not defined AUTO_MODE pause
- 

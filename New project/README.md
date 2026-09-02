@@ -132,9 +132,10 @@ verified to run correctly against a live display during development.
 
 - **`run.bat`** — the one file to double-click. On a brand-new computer (or
   if the venvs are missing/broken — e.g. this folder was copied from
-  another machine), it automatically runs setup first, then starts
-  everything silently in the background. On every run after that, it just
-  starts everything in a few seconds — no thinking required either way.
+  another machine), it automatically runs setup first, installs Windows
+  autostart for this user if it is missing, then starts everything silently
+  in the background. On every run after that, it just starts everything in
+  a few seconds — no thinking required either way.
 - **`setup.bat`** — what `run.bat` calls automatically when needed. Creates
   fresh `venv` folders for the backend and desktop agent and installs all
   dependencies, using whichever Python/Node.js are already installed on
@@ -147,9 +148,9 @@ verified to run correctly against a live display during development.
   which is what `run.bat` uses) — starts the same three things silently,
   with no visible windows.
 - **`install-local-autostart.bat`** / **`uninstall-local-autostart.bat`** —
-  adds/removes a Startup-folder shortcut so the whole stack (backend,
-  dashboard, and agent) launches automatically when this Windows user logs
-  in, with no manual step at all — not even double-clicking `run.bat`.
+  manually adds/removes the same Startup-folder shortcut that `run.bat`
+  now installs automatically, so the whole stack (backend, dashboard, and
+  agent) launches automatically when this Windows user logs in.
 - **`stop-all.bat`** — stops any backend/frontend/agent processes that were
   started from this project folder.
 

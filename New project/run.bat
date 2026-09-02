@@ -67,26 +67,12 @@ if defined NEED_SETUP (
     echo.
 )
 
-if not exist "%AUTOSTART_SHORTCUT%" (
-    echo Installing automatic startup for this Windows user...
-    call "%~dp0install-local-autostart.bat"
-    if errorlevel 1 (
-        echo.
-        echo Autostart setup failed - Org Tracker can still run now, but it
-        echo may not start automatically after reboot. See the messages above.
-        pause
-        exit /b 1
-    )
-    echo.
-)
+echo Ensuring the PostgreSQL database and tables are ready...
+"backend\venv\Scripts\python.exe" -c "from app.database import engine; from app import models; models.Base.metadata.create_all(bind=engine); print('PostgreSQL schema ready')"
 
-if not exist "backend\tracker.db" (
-    echo No admin login exists yet on this computer's database.
-    echo Create one now:
+echo If you have not created the first admin account yet, run:
+    echo   backend\venv\Scripts\python.exe backend\create_admin.py
     echo.
-    "backend\venv\Scripts\python.exe" backend\create_admin.py
-    echo.
-)
 
 echo Starting Org Tracker...
 call "%~dp0start-all-background.bat"

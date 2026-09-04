@@ -21,13 +21,37 @@ If (Not PythonWorks(backendPython)) Or (Not PythonWorks(agentPython)) Then
     WScript.Quit 1
 End If
 
-StartHidden "cmd.exe /c cd /d " & q & root & "\backend" & q & " && " & q & backendPython & q & " -m uvicorn app.main:app --reload --host 0.0.0.0 --port " & GetBackendPort()
-StartHidden "cmd.exe /c cd /d " & q & root & "\frontend" & q & " && npm.cmd run dev"
-StartHidden "cmd.exe /c cd /d " & q & root & "\desktop-agent" & q & " && " & q & agentPython & q & " agent.py"
+If Not BackendIsRunning() Then
+    StartHidden "cmd.exe /c cd /d " & q & root & "\backend" & q & " && " & q & backendPython & q & " -m uvicorn app.main:app --reload --host 0.0.0.0 --port " & GetBackendPort()
+End If
+If Not FrontendIsRunning() Then
+    StartHidden "cmd.exe /c cd /d " & q & root & "\frontend" & q & " && npm.cmd run dev"
+End If
+If Not AgentIsRunning() Then
+    StartHidden "cmd.exe /c cd /d " & q & root & "\desktop-agent" & q & " && " & q & agentPython & q & " agent.py"
+End If
 
 Sub StartHidden(command)
     shell.Run command, 0, False
 End Sub
+
+Function AgentIsRunning()
+    Dim service, processes, process
+    AgentIsRunning = False
+    On Error Resume Next
+    Set service = GetObject("winmgmts:\\.\root\cimv2")
+    Set processes = service.ExecQuery("SELECT Name, CommandLine FROM Win32_Process")
+    For Each process In processes
+        If LCase(process.Name) = "pythonw.exe" Or LCase(process.Name) = "python.exe" Then
+            If InStr(1, process.CommandLine, root & "\desktop-agent", vbTextCompare) > 0 And _
+               InStr(1, process.CommandLine, "agent.py", vbTextCompare) > 0 Then
+                AgentIsRunning = True
+                Exit For
+            End If
+        End If
+    Next
+    On Error GoTo 0
+End Function
 
 Function GetBackendPort()
     ' Reads PORT= from backend\.env so this can never drift out of sync
@@ -74,4 +98,28 @@ Function PythonWorks(pyPath)
     If wshExec.Status = 1 And wshExec.ExitCode = 0 Then
         PythonWorks = True
     End If
+End Function
+
+Function BackendIsRunning()
+    BackendIsRunning = ProcessCommandContains("uvicorn app.main:app")
+End Function
+
+Function FrontendIsRunning()
+    FrontendIsRunning = ProcessCommandContains(root & "\frontend") And _
+                        ProcessCommandContains("run dev")
+End Function
+
+Function ProcessCommandContains(text)
+    Dim service, processes, process
+    ProcessCommandContains = False
+    On Error Resume Next
+    Set service = GetObject("winmgmts:\\.\root\cimv2")
+    Set processes = service.ExecQuery("SELECT CommandLine FROM Win32_Process")
+    For Each process In processes
+        If InStr(1, process.CommandLine, text, vbTextCompare) > 0 Then
+            ProcessCommandContains = True
+            Exit For
+        End If
+    Next
+    On Error GoTo 0
 End Function

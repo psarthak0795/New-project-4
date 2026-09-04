@@ -112,6 +112,7 @@ class TrackerAgent:
         self.tracking = False
         self._stop_event = threading.Event()
         self._worker_thread = None
+        self._command_thread = None
         self.icon = None
 
     # ---------- Notifications ----------
@@ -377,6 +378,18 @@ class TrackerAgent:
                 except Exception as e:
                     self.notify(f"Screenshot failed: {e}")
 
+    def _command_loop(self):
+        request_file = os.path.join(DATA_DIR, "start_tracking.request")
+        while True:
+            if os.path.exists(request_file):
+                try:
+                    os.remove(request_file)
+                except OSError:
+                    pass
+                if not self.tracking:
+                    self.start_tracking()
+            time.sleep(1)
+
     def _capture_and_upload(self):
         image_bytes = self.capture_screenshot_bytes()
         ip_address = self.get_system_ip()
@@ -437,6 +450,8 @@ class TrackerAgent:
         self.sync_active_entry()
         if AUTO_START_TRACKING and not self.tracking:
             self.start_tracking()
+        self._command_thread = threading.Thread(target=self._command_loop, daemon=True)
+        self._command_thread.start()
         print("Agent started. Look for the tray icon in the notification area.")
         self.icon.run()
 

@@ -25,8 +25,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ZgB1AG4AYwB0AG
 if not errorlevel 1 set "TRACKER_ALREADY_RUNNING=1"
 
 if "%TRACKER_ALREADY_RUNNING%"=="1" (
-    echo Org Tracker is already running and healthy.
-    echo No restart is needed.
+    REM Ask the existing agent to start a new session without duplicating it.
+    if not exist "%APPDATA%\OrgTracker" mkdir "%APPDATA%\OrgTracker" >nul 2>nul
+    type nul > "%APPDATA%\OrgTracker\start_tracking.request"
+    call "%~dp0start-all-background.bat"
+    echo Org Tracker is already running. A new tracking session was requested.
     echo.
     exit /b 0
 )
@@ -63,6 +66,16 @@ if defined NEED_SETUP (
         echo run.bat again.
         pause
         exit /b 1
+    )
+    echo.
+)
+
+if not exist "%AUTOSTART_SHORTCUT%" (
+    echo Installing automatic startup for this Windows user...
+    call "%~dp0install-local-autostart.bat"
+    if errorlevel 1 (
+        echo WARNING: automatic startup could not be installed.
+        echo Run install-local-autostart.bat manually after fixing the issue.
     )
     echo.
 )

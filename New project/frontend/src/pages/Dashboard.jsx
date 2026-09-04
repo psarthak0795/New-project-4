@@ -12,7 +12,7 @@ function formatClock(seconds) {
 function formatHM(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  return `${h}h ${m}m`;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
 }
 
 // active entries never get duration_seconds updated until /stop is called,
@@ -136,13 +136,25 @@ export default function Dashboard() {
   return (
     <div>
       <div className="dashboard-header">
-        <input
-          className="search-input"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button className="btn-primary" onClick={() => setShowAddModal(true)}>+ Add Member</button>
+        <div className="search-wrap">
+          <span className="search-icon">⌕</span>
+          <input
+            className="search-input"
+            placeholder="Search members or IP..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="header-actions">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="idle">Idle</option>
+            <option value="offline">Offline</option>
+          </select>
+          <input className="header-date" type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} aria-label="Filter by date" />
+          <button className="btn-primary" onClick={() => setShowAddModal(true)}>＋ Add Member</button>
+        </div>
       </div>
 
       <div className="page-title-row">
@@ -150,15 +162,7 @@ export default function Dashboard() {
           <h1>Team Overview</h1>
           <p className="subtitle">Monitor real-time employee activity and status.</p>
         </div>
-        <div className="filters">
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="idle">Idle</option>
-            <option value="offline">Offline</option>
-          </select>
-          <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
-        </div>
+        <div className="updated-indicator"><span /> Updated just now</div>
       </div>
 
       <div className="stat-cards">
@@ -185,10 +189,14 @@ export default function Dashboard() {
       </div>
 
       <div className="table-card">
+        <div className="table-heading">
+          <div><h2>Member Activity</h2><span>{users.length} members registered</span></div>
+          <div className="table-tabs"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")}>All ({users.length})</button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")}>Active ({stats.activeNow})</button><button className={statusFilter === "offline" ? "selected" : ""} onClick={() => setStatusFilter("offline")}>Offline ({stats.offlineNow})</button></div>
+        </div>
         <table>
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Employee</th>
               <th>Email</th>
               <th>Status</th>
               <th>Current Session IP</th>
@@ -203,7 +211,7 @@ export default function Dashboard() {
                 <td>
                   <div className="name-cell">
                     <span className={`avatar-sm avatar-${r.status}`}>{r.user.name.charAt(0).toUpperCase()}</span>
-                    {r.user.name}
+                    <div><strong>{r.user.name}</strong><small>{r.user.role === "admin" ? "Team Admin" : "Member"}</small></div>
                   </div>
                 </td>
                 <td>{r.user.email}</td>
@@ -225,6 +233,7 @@ export default function Dashboard() {
             )}
           </tbody>
         </table>
+        <div className="table-footer"><span>Showing 1 to {filteredRows.length} of {users.length} members</span><div className="pagination"><button disabled>Previous</button><button className="page-current">1</button><button disabled>Next</button></div></div>
       </div>
 
       {showAddModal && (

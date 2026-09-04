@@ -24,6 +24,12 @@ End If
 If Not BackendIsRunning() Then
     StartHidden "cmd.exe /c cd /d " & q & root & "\backend" & q & " && " & q & backendPython & q & " -m uvicorn app.main:app --reload --host 0.0.0.0 --port " & GetBackendPort()
 End If
+If Not BackendReady() Then
+    MsgBox "Org Tracker can't start because the backend did not become ready." & vbCrLf & vbCrLf & _
+           "Check PostgreSQL is running, then try again.", _
+           vbCritical, "Org Tracker - Backend unavailable"
+    WScript.Quit 1
+End If
 If Not FrontendIsRunning() Then
     StartHidden "cmd.exe /c cd /d " & q & root & "\frontend" & q & " && npm.cmd run dev"
 End If
@@ -102,6 +108,26 @@ End Function
 
 Function BackendIsRunning()
     BackendIsRunning = ProcessCommandContains("uvicorn app.main:app")
+End Function
+
+Function BackendReady()
+    Dim request, tries, url
+    BackendReady = False
+    url = "http://127.0.0.1:" & GetBackendPort() & "/health"
+    For tries = 1 To 30
+        On Error Resume Next
+        Set request = CreateObject("MSXML2.XMLHTTP")
+        request.Open "GET", url, False
+        request.Send
+        If Err.Number = 0 And request.Status = 200 Then
+            BackendReady = True
+            On Error GoTo 0
+            Exit Function
+        End If
+        Err.Clear
+        On Error GoTo 0
+        WScript.Sleep 500
+    Next
 End Function
 
 Function FrontendIsRunning()

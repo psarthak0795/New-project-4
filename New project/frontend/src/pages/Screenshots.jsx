@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
   export default function Screenshots() {
     const [searchParams] = useSearchParams();
     const timeEntryId = searchParams.get("time_entry_id") || undefined;
+    const userId = searchParams.get("user_id") || undefined;
     const [shots, setShots] = useState([]);
     const [selected, setSelected] = useState(null);
 
     useEffect(() => {
-      listScreenshots(undefined, timeEntryId).then(setShots);
-    }, [timeEntryId]);
+      listScreenshots(userId, timeEntryId).then(setShots);
+    }, [userId, timeEntryId]);
 
     useEffect(() => {
       function onKeyDown(e) {

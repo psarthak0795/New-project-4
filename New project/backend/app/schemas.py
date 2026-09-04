@@ -77,6 +77,8 @@ class TimeEntryOut(BaseModel):
     duration_seconds: int
     status: TimeEntryStatus
     start_ip_address: Optional[str] = None
+    last_seen_at: Optional[datetime] = None   # NEW
+    is_idle: bool = False                     # NEW
  
     class Config:
         from_attributes = True
@@ -84,6 +86,10 @@ class TimeEntryOut(BaseModel):
     @field_serializer("start_time", "end_time")
     def serialize_dt(self, dt: Optional[datetime], _info):
         return _as_utc_iso(dt)
+    
+    # NEW — sent by the tracking client every N seconds while a session is active
+class TimeEntryHeartbeat(BaseModel):
+    is_idle: bool = False
  
  
 # ---- Screenshots ----

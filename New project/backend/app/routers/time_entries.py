@@ -1,8 +1,8 @@
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, auth
@@ -87,6 +87,8 @@ def get_active_entry(
 @router.get("", response_model=List[schemas.TimeEntryOut])
 def list_time_entries(
     user_id: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
@@ -97,4 +99,39 @@ def list_time_entries(
     else:
         query = query.filter(models.TimeEntry.user_id == current_user.id)
 
+    if start_date is not None:
+        range_start = datetime.combine(start_date, datetime.min.time(), tzinfo=timezone.utc)
+        query = query.filter(
+            or_(models.TimeEntry.end_time.is_(None), models.TimeEntry.end_time >= range_start)
+        )
+
+    if end_date is not None:
+        range_end = datetime.combine(end_date, datetime.max.time(), tzinfo=timezone.utc)
+        query = query.filter(models.TimeEntry.start_time <= range_end)
+
     return query.order_by(models.TimeEntry.start_time.desc()).all()
+
+@router.post("/{entry_id}/heartbeat", response_model=schemas.TimeEntryOut)
+def heartbeat(
+    entry_id: int,
+    payload: schemas.TimeEntryHeartbeat,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    entry = (
+        db.query(models.TimeEntry)
+        .filter(
+            models.TimeEntry.id == entry_id,
+            models.TimeEntry.user_id == current_user.id,
+            models.TimeEntry.status == models.TimeEntryStatus.active,
+        )
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Active time entry not found")
+
+    entry.last_seen_at = datetime.now(timezone.utc)
+    entry.is_idle = payload.is_idle
+    db.commit()
+    db.refresh(entry)
+    return entry

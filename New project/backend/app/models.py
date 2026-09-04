@@ -57,6 +57,10 @@ class TimeEntry(Base):
     status = Column(Enum(TimeEntryStatus), default=TimeEntryStatus.active)
 
     start_ip_address = Column(String, nullable=True)
+    
+     # NEW — real idle tracking instead of guessing from screenshots
+    last_seen_at = Column(DateTime(timezone=True), nullable=True)
+    is_idle = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="time_entries")
     project = relationship("Project", back_populates="time_entries")

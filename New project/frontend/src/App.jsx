@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import EmployeeDetail from "./pages/EmployeeDetail.jsx";
 import Timesheets from "./pages/Timesheets.jsx";
 import Screenshots from "./pages/Screenshots.jsx";
 import { logout } from "./api";
@@ -40,6 +41,14 @@ export default function App() {
           element={
             <RequireAuth>
               <Shell><Dashboard /></Shell>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/employee/:id"
+          element={
+            <RequireAuth>
+              <Shell><EmployeeDetail /></Shell>
             </RequireAuth>
           }
         />

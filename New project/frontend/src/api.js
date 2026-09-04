@@ -42,10 +42,35 @@ export async function listUsers() {
   return handle(resp);
 }
 
-export async function listTimeEntries(userId) {
+export async function getUser(userId) {
+  const resp = await fetch(`${BACKEND_URL}/users/${userId}`, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export async function createUser(payload) {
+  const resp = await fetch(`${BACKEND_URL}/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  return handle(resp);
+}
+
+export async function listTimeEntries(userId, range) {
   const url = new URL(`${BACKEND_URL}/time-entries`);
   if (userId) url.searchParams.set("user_id", userId);
+  if (range?.start) url.searchParams.set("start_date", range.start);
+  if (range?.end) url.searchParams.set("end_date", range.end);
   const resp = await fetch(url, { headers: authHeaders() });
+  return handle(resp);
+}
+
+export async function sendHeartbeat(entryId, isIdle) {
+  const resp = await fetch(`${BACKEND_URL}/time-entries/${entryId}/heartbeat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ is_idle: isIdle }),
+  });
   return handle(resp);
 }
 
@@ -58,11 +83,11 @@ export async function listScreenshots(userId, timeEntryId) {
 }
 
 export function screenshotUrl(filePath) {
-    // backend serves the storage dir at /media/screenshots
-    // normalize Windows backslashes to forward slashes before matching
-    const normalized = filePath.replace(/\\/g, "/");
-    const marker = "storage/screenshots/";
-    const idx = normalized.indexOf(marker);
-    const relative = idx >= 0 ? normalized.slice(idx + marker.length) : normalized;
-    return `${BACKEND_URL}/media/screenshots/${relative}`;
-  }
+  // backend serves the storage dir at /media/screenshots
+  // normalize Windows backslashes to forward slashes before matching
+  const normalized = filePath.replace(/\\/g, "/");
+  const marker = "storage/screenshots/";
+  const idx = normalized.indexOf(marker);
+  const relative = idx >= 0 ? normalized.slice(idx + marker.length) : normalized;
+  return `${BACKEND_URL}/media/screenshots/${relative}`;
+}
